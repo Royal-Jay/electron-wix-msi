@@ -13,6 +13,12 @@ import { getDirectoryStructure } from './utils/walker';
 const getTemplate = (name: string) => fs.readFileSync(path.join(__dirname, `../static/${name}.xml`), 'utf-8');
 const ROOTDIR_NAME = 'APPLICATIONROOTDIRECTORY';
 const debug = require('debug')('electron-wix-msi');
+const lightBinary = process.env.WIX
+  ? path.join(`"${process.env.WIX}"`.replace(/"/g, ''), 'bin', 'light.exe')
+  : 'light.exe';
+const candleBinary = process.env.WIX
+  ? path.join(`"${process.env.WIX}"`.replace(/"/g, ''), 'bin', 'candle.exe')
+  : 'candle.exe';
 
 export interface MSICreatorOptions {
   appDirectory: string;
@@ -30,7 +36,7 @@ export interface MSICreatorOptions {
   shortName?: string;
   shortcutFolderName?: string;
   shortcutName?: string;
-  shortcutTarget?: string
+  shortcutTarget?: string;
   ui?: UIOptions | boolean;
   upgradeCode?: string;
   version: string;
@@ -76,7 +82,7 @@ export enum CustomActionReturnOption {
 }
 
 export interface DesktopShortcutOptions {
-  shortcutIconId?: string
+  shortcutIconId?: string;
 }
 
 export interface UIImages {
@@ -297,8 +303,8 @@ export class MSICreator {
     const cwd = path.dirname(this.wxsFile);
     const expectedObj = path.join(cwd, `${path.basename(this.wxsFile, '.wxs')}.${type}`);
     const binary = type === 'msi'
-      ? 'light.exe'
-      : 'candle.exe';
+      ? lightBinary
+      : candleBinary;
     const input = type === 'msi'
       ? path.join(cwd, `${path.basename(this.wxsFile, '.wxs')}.wixobj`)
       : this.wxsFile;
@@ -389,9 +395,9 @@ export class MSICreator {
     let xml = '';
 
     if (this.customActions.length) {
-      this.customActions.forEach(a => {
+      this.customActions.forEach((a) => {
         const template = this.customActionTemplate;
-        const parentElementClose = `</${a.parentElement}>`
+        const parentElementClose = `</${a.parentElement}>`;
 
         xml += replaceInString(template, {
           '{{Id}}': `Id="${a.id}"`,
@@ -400,11 +406,11 @@ export class MSICreator {
           '{{Impersonate}}': a.impersonate ? `Impersonate="yes"` : 'Impersonate="no"',
           '{{Return}}': `Return="${a.returnOption}"` || '',
           '{{ExeCommand}}': `ExeCommand="${a.exeCommand}"`
-        })
+        });
 
         xml = xml.replace(/^\s*[\r\n]/gm, '');
-        this.wixTemplate = this.wixTemplate.replace(parentElementClose, `\t${a.xml}\n\t\t${parentElementClose}`)
-      })
+        this.wixTemplate = this.wixTemplate.replace(parentElementClose, `\t${a.xml}\n\t\t${parentElementClose}`);
+      });
 
       xml += '\r\n';
     }
@@ -413,10 +419,10 @@ export class MSICreator {
   }
 
   /**
- * Returns Wix DesktopShortcut component
- *
- * @returns {string}
- */
+   * Returns Wix DesktopShortcut component
+   *
+   * @returns {string}
+   */
   private getDesktop(): string {
     let xml = '';
 
@@ -465,10 +471,10 @@ export class MSICreator {
    * @returns {string}
    */
   private getDirectoryForTree(tree: FileFolderTree,
-    treePath: string,
-    indent: number,
-    id?: string,
-    name?: string): string {
+                              treePath: string,
+                              indent: number,
+                              id?: string,
+                              name?: string): string {
     const childDirectories = Object.keys(tree)
       .filter((k) => !k.startsWith('__ELECTRON_WIX_MSI'))
       .map((k) => {
